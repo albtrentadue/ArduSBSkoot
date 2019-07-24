@@ -88,7 +88,7 @@ __bit i2c1_driver_open(void)
         SSP1STAT = 0x00;
         SSP1CON1 = 0x28;
         SSP1CON2 = 0x00;
-        SSP1ADD = 0x3;
+        SSP1ADD = 0x9;
         return true;
     }
     else

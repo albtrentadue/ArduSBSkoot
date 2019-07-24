@@ -8,7 +8,8 @@
 #define	SBSKOOTS2I2C_H
 
 //Costanti di temporizzazione - calibrate per clock 16MHz
-#define TEMPO_500uSEC 2000
+#define TEMPO_500uSEC 8000
+#define TEMPO_2MSEC 32000
 
 void inizializza_app(void);
 
@@ -22,7 +23,7 @@ void check_frame_seriale(void);
  * Copia i dati del frame seriale nell'area di trasmissione
  * dell'I2C
  */
-void copia_dati(void);
+void leggi_dati(void);
 
 /**
  * Funzione utilizzata come callback per il trasferimento dei

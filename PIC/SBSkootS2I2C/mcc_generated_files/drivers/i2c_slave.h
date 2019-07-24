@@ -37,6 +37,8 @@
 
 //bit di sincronizzazione tra I2C e seriale
 extern bool i2c_sync;
+//puntatore ai dati da trasmettere al Master
+extern uint8_t i2c_tx_data_counter;
 
 /**
   Section: Function declaration

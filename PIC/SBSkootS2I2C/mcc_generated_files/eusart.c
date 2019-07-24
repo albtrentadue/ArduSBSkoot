@@ -100,8 +100,8 @@ void EUSART_Initialize(void)
     // TX9 9-bit; TX9D 0; SENDB sync_break_complete; TXEN disabled; SYNC asynchronous; BRGH hi_speed; CSRC slave; 
     TX1STA = 0x44;
 
-    // SP1BRGL 18; 
-    SP1BRGL = 0x12;
+    // SP1BRGL 70; 
+    SP1BRGL = 0x46;
 
     // SP1BRGH 0; 
     SP1BRGH = 0x00;
@@ -179,6 +179,7 @@ void EUSART_Write(uint16_t txData)
 
     TX1REG = txData;    // Write the data byte to the USART.
 }
+
 
 
 void EUSART_Receive_ISR(void)

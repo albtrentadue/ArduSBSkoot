@@ -26,20 +26,22 @@
 #define I2C1_SLAVE_ADDRESS 8 
 #define I2C1_SLAVE_MASK    254
 
+#define IO_LED_Toggle()             do { LATCbits.LATC2 = ~LATCbits.LATC2; } while(0)
+
 /**
  Section: Global Variables
  */
 
-typedef enum {Address, I2C_TX, I2C_RX} i2c_state_t;
+typedef enum {ADDRESS, I2C_TX, I2C_RX} i2c_state_t;
 
-static volatile i2c_state_t state = Address;
-static volatile i2c_state_t nextState =  Address;
+static volatile i2c_state_t state = ADDRESS;
+static volatile i2c_state_t nextState =  ADDRESS;
 volatile uint8_t i2c1Data;
 volatile uint8_t sAddr;
 uint8_t i2c_tx_data_len;
-uint8_t tx_data_counter;
+uint8_t i2c_tx_data_counter;
 
-extern bool i2c_sync = false;
+bool i2c_sync = false;
 
 /**
  Section: Local Functions
@@ -52,13 +54,14 @@ extern bool i2c_sync = false;
 void i2c_set_tx_data_len(uint8_t len)
 {
   i2c_tx_data_len = len;
-  tx_data_counter = 0;
+  i2c_tx_data_counter = 0;
 }
 
 void i2c_slave_open(void) {
 
     i2c_slave_setIsrHandler(i2c_slave_ISR);
     i2c1_driver_initSlaveHardware();
+    i2c1_driver_releaseClock();
     i2c1_driver_setAddr(I2C1_SLAVE_ADDRESS << 1);
     i2c1_driver_setMask(I2C1_SLAVE_MASK);
     i2c1_driver_setBusCollisionISR(i2c_slave_BusCollisionISR);
@@ -66,45 +69,65 @@ void i2c_slave_open(void) {
     i2c_slave_setReadIntHandler(i2c_slave_DefRdInterruptHandler);
     i2c_slave_setAddrIntHandler(i2c_slave_DefAddrInterruptHandler);
     i2c_slave_setWCOLIntHandler(i2c_slave_BusCollisionISR);
+    mssp1_enableIRQ();
 }
 
 void i2c_slave_close(void) {
     i2c1_driver_close();
 }
 
+/**
+ * ISR triggerato da un evento I2C.
+ * Normalmente dovrebbe essere la ricezione dell'indirizzo (proprio)
+ * o l'ACK di un dato trasmesso.
+ */
 void i2c_slave_ISR(void) {
-    mssp1_clearIRQ();  
+    mssp1_clearIRQ();    
  
     // read SSPBUF to clear BF
-    i2c1Data = i2c1_driver_getRXData(); 
+    i2c1Data = i2c1_driver_getRXData();    
     
+    /*
+     In questa applicazione l'unica operazione
+     possibile è la lettura dei dati da parte del Master
+     per cui dallo stato ADDRESS si passa in TX solamente
+           
     if (0 == i2c1_driver_isRead()) //"Read" dal punto di vista del Master.
     {
         state = I2C_RX;
     } else {
         state = I2C_TX;         
     }
+    */
+    //All'arrivo dell'indirizzo, si resetta il contatore dei dati
+    //e si passa in TX
+    if (1 == i2c1_driver_isAddress()) {
+        state = I2C_TX;
+        i2c_tx_data_counter = 0;
+    }
+    else if (1 == i2c1_driver_isNACK()) {
+        state = ADDRESS;
+    }
     
+    
+    /*
     switch(state)
     {
+                    
         case I2C_TX:
-            if(0 == i2c1_driver_isWriteCollision()) 
-            { //if there is no write collision
-                 i2c_slave_WrCallBack();
-                 tx_data_counter++;
+            if (0 == i2c1_driver_isWriteCollision()) 
+            { //if there is no write collision        
+                i2c_slave_WrCallBack();        
+                tx_data_counter++;
             }
             else 
             {
-                  i2c_slave_WCOLCallBack();
-                  i2c1_driver_restart();
+                i2c_slave_WCOLCallBack();
+                i2c1_driver_restart();
             }
-            if (tx_data_counter == i2c_tx_data_len) 
-            { //all data has been sent to the Master
-                  nextState = Address;
-                  tx_data_counter = 0;
-            }
+            
             break;
-           
+
         case I2C_RX:
             if (1 == i2c1_driver_isData()) 
             {
@@ -112,16 +135,37 @@ void i2c_slave_ISR(void) {
                 nextState = I2C_RX;
             } else {
                 i2c_slave_AddrCallBack();
-                nextState = Address;
+                nextState = ADDRESS;
             }
             
             break;
+          
         default:          
-            break;
+            break;        
     }
+    */
     
-    state = nextState;
+    if (state == I2C_TX) {
+        if (0 == i2c1_driver_isWriteCollision()) 
+        { //if there is no write collision
+            if (i2c_tx_data_counter < i2c_tx_data_len) {
+                //Se ci sono dati da inviare ancora
+                i2c_slave_WrCallBack();        
+                i2c_tx_data_counter++;
+            }
+        }
+        else 
+        {
+            i2c_slave_WCOLCallBack();
+            i2c1_driver_restart();
+        }
+        //per debug, quando serve
+        //IO_LED_Toggle();
+    }
+        
+    //state = nextState;    
     i2c1_driver_releaseClock();
+    
 }
 
 void i2c_slave_BusCollisionISR(void) {
@@ -175,9 +219,12 @@ void i2c_slave_DefRdInterruptHandler(void) {
 // Write Event Interrupt Handlers
 void i2c_slave_WrCallBack(void) {
     // Add your custom callback code here
+    /*
     if (i2c_slave_WrInterruptHandler) {
         i2c_slave_WrInterruptHandler();
     }
+     */     
+    i2c_slave_WrInterruptHandler();    
 }
 
 void i2c_slave_setWriteIntHandler(interruptHandler handler) {

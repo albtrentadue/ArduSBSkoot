@@ -43,17 +43,19 @@ void main(void)
     //Inizializzare lo slave I2C qui
     i2c_slave_open();
     i2c_slave_setWriteIntHandler(trasferisci_dati);
-    i2c_set_tx_data_len(6);    
-
+    i2c_set_tx_data_len(6);
+    
     while (1)
     {
         //Controlla l'arrivo di una nuova trama seriale dal sensore
         //La lettura di un frame seriale impiega 2,5msec
-        check_frame_seriale();
+        //TEMPORANEO PER PROVE I2C
+        //check_frame_seriale();          
         //Copia i dati nel buffer per l'I2C
-        copia_dati();
+        //leggi_dati();
+        _delay(TEMPO_2MSEC);
                     
-        heartbeat();        
+        heartbeat();
         cnt_loop--;
     }
 }
