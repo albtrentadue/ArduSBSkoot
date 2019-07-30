@@ -25,12 +25,12 @@
          <string>class com.microchip.mcc.mcu8.pinManager.PinManager</string>
       </entry>
       <entry>
-         <string>I2CSLAVE</string>
-         <string>class com.microchip.mcc.foundationservices.modules.softwaredriver.I2CSlave.I2CSLAVE</string>
-      </entry>
-      <entry>
          <string>MSSP1</string>
          <string>class com.microchip.mcc.foundationservices.modules.peripheraldriver.mssp.MSSP</string>
+      </entry>
+      <entry>
+         <string>I2CSLAVE</string>
+         <string>class com.microchip.mcc.foundationservices.modules.softwaredriver.I2CSlave.I2CSLAVE</string>
       </entry>
       <entry>
          <string>RESET</string>
@@ -64,7 +64,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.RegisterKey" moduleName="Pin Module" registerAlias="TRISC"/>
-         <value>43</value>
+         <value>35</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="MSSP1" registerAlias="SSPCON1" settingAlias="SSPM" alias="10 Bit Polling"/>
@@ -180,7 +180,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.RegisterKey" moduleName="Pin Module" registerAlias="ODCONC"/>
-         <value>16</value>
+         <value>4</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="ODCONA" settingAlias="ODCA5"/>
@@ -292,7 +292,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="TRISC" settingAlias="TRISC3"/>
-         <value>input</value>
+         <value>output</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="Pin Module" registerAlias="IOCCN" settingAlias="IOCCN4" alias="enabled"/>
@@ -512,7 +512,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="ODCONC" settingAlias="ODCC2"/>
-         <value>disabled</value>
+         <value>enabled</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.RegisterKey" moduleName="PMD" registerAlias="PMD0"/>
@@ -2620,7 +2620,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="Custom Name RC3"/>
-         <value/>
+         <value>IO_DRDY</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="Custom Name RC4"/>
@@ -2672,7 +2672,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="I2CSLAVE" name="pubSubI2CSLAVE_I2C/Functions"/>
-         <value>1643.3982750715836</value>
+         <value>7088.376119291923</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="WPUA" settingAlias="WPUA4"/>
@@ -2820,7 +2820,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="anselUserSetRC3"/>
-         <value>disabled</value>
+         <value>enabled</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="anselUserSetRC4"/>
@@ -2988,7 +2988,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="ANSELC" settingAlias="ANSC3"/>
-         <value>analog</value>
+         <value>digital</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="Pin Module" registerAlias="WPUA" settingAlias="WPUA2" alias="clear"/>
@@ -3152,7 +3152,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="customNameUserSet RC3"/>
-         <value>disabled</value>
+         <value>enabled</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="WDT" registerAlias="WDTCON0" settingAlias="WDTPS" alias="1:8192"/>
@@ -3684,7 +3684,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="Pin Module" name="RC3"/>
-         <value>disabled</value>
+         <value>output</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.OptionKey" moduleName="Pin Module" registerAlias="INLVLC" settingAlias="INLVLC1" alias="ST_input"/>
@@ -3936,7 +3936,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="Pin Module" registerAlias="ODCONC" settingAlias="ODCC4"/>
-         <value>enabled</value>
+         <value>disabled</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.CustomKey" moduleName="INTERNAL OSCILLATOR" name="FOSCClockValue"/>
@@ -4044,7 +4044,7 @@
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.RegisterKey" moduleName="Pin Module" registerAlias="ANSELC"/>
-         <value>8</value>
+         <value>0</value>
       </entry>
       <entry>
          <key class="com.microchip.mcc.core.tokenManager.SettingKey" moduleName="PMD" registerAlias="PMD4" settingAlias="MSSP1MD"/>
@@ -4314,7 +4314,7 @@
       </entry>
       <entry>
          <file>mcc_generated_files\pin_manager.h</file>
-         <hash>8eaa3112e3fd2fd7116875db48c03c3f6d141d43a85d3aedac2480fbc10faa20</hash>
+         <hash>eb705d139c2f089322006a48cd290c09e9fc63168acdab9ba865e5d71a417b8b</hash>
       </entry>
       <entry>
          <file>mcc_generated_files\eusart.c</file>
@@ -4326,19 +4326,19 @@
       </entry>
       <entry>
          <file>mcc_generated_files\pin_manager.c</file>
-         <hash>6d1948d1da1499c7133b91aa6434023b98acf462bc54458981640653ba6d56dc</hash>
+         <hash>3778a5f5fc430109c31a74648c6a5cf414e4203ea5009b681a7241f8d48cd11f</hash>
       </entry>
       <entry>
          <file>mcc_generated_files\eusart.h</file>
          <hash>675e4764e6bb1aaf2e5186e79b7be23c57e99a08adc9cbf3f89634b3ebee262b</hash>
       </entry>
       <entry>
-         <file>mcc_generated_files\drivers\i2c_slave.c</file>
-         <hash>53ffd8a150db031d8147d941ef35e7f3549b54912dc5ce123d8c1141a515d0ad</hash>
-      </entry>
-      <entry>
          <file>mcc_generated_files\i2c1_driver.h</file>
          <hash>416c80cbea1dd4cb8fb88945a9563f2599aa3f287f362ebc5288cf22f41ef677</hash>
+      </entry>
+      <entry>
+         <file>mcc_generated_files\drivers\i2c_slave.c</file>
+         <hash>53ffd8a150db031d8147d941ef35e7f3549b54912dc5ce123d8c1141a515d0ad</hash>
       </entry>
       <entry>
          <file>mcc_generated_files\interrupt_manager.c</file>

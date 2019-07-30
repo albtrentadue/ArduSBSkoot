@@ -125,6 +125,26 @@
 #define IO_LED_SetAnalogMode()      do { ANSELCbits.ANSC2 = 1; } while(0)
 #define IO_LED_SetDigitalMode()     do { ANSELCbits.ANSC2 = 0; } while(0)
 
+// get/set IO_DRDY aliases
+#define IO_DRDY_TRIS                 TRISCbits.TRISC3
+#define IO_DRDY_LAT                  LATCbits.LATC3
+#define IO_DRDY_PORT                 PORTCbits.RC3
+#define IO_DRDY_WPU                  WPUCbits.WPUC3
+#define IO_DRDY_OD                   ODCONCbits.ODCC3
+#define IO_DRDY_ANS                  ANSELCbits.ANSC3
+#define IO_DRDY_SetHigh()            do { LATCbits.LATC3 = 1; } while(0)
+#define IO_DRDY_SetLow()             do { LATCbits.LATC3 = 0; } while(0)
+#define IO_DRDY_Toggle()             do { LATCbits.LATC3 = ~LATCbits.LATC3; } while(0)
+#define IO_DRDY_GetValue()           PORTCbits.RC3
+#define IO_DRDY_SetDigitalInput()    do { TRISCbits.TRISC3 = 1; } while(0)
+#define IO_DRDY_SetDigitalOutput()   do { TRISCbits.TRISC3 = 0; } while(0)
+#define IO_DRDY_SetPullup()          do { WPUCbits.WPUC3 = 1; } while(0)
+#define IO_DRDY_ResetPullup()        do { WPUCbits.WPUC3 = 0; } while(0)
+#define IO_DRDY_SetPushPull()        do { ODCONCbits.ODCC3 = 0; } while(0)
+#define IO_DRDY_SetOpenDrain()       do { ODCONCbits.ODCC3 = 1; } while(0)
+#define IO_DRDY_SetAnalogMode()      do { ANSELCbits.ANSC3 = 1; } while(0)
+#define IO_DRDY_SetDigitalMode()     do { ANSELCbits.ANSC3 = 0; } while(0)
+
 // get/set RC4 procedures
 #define RC4_SetHigh()            do { LATCbits.LATC4 = 1; } while(0)
 #define RC4_SetLow()             do { LATCbits.LATC4 = 0; } while(0)

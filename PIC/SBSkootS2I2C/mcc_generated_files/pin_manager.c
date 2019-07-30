@@ -64,12 +64,12 @@ void PIN_MANAGER_Initialize(void)
     TRISx registers
     */
     TRISA = 0x37;
-    TRISC = 0x2B;
+    TRISC = 0x23;
 
     /**
     ANSELx registers
     */
-    ANSELC = 0x08;
+    ANSELC = 0x00;
     ANSELA = 0x37;
 
     /**
@@ -82,7 +82,7 @@ void PIN_MANAGER_Initialize(void)
     ODx registers
     */
     ODCONA = 0x00;
-    ODCONC = 0x10;
+    ODCONC = 0x04;
 
     /**
     SLRCONx registers
