@@ -37,7 +37,7 @@ void leggi_dati(void);
  * - Resetta il flag DATA_READY
  * - Riabilita gli interrupt della USART1
  */
-void attendi_richiesta_dati(void);
+void trigger_richiesta_dati(void);
 
 /**
  * Funzione utilizzata come callback per il trasferimento byte per byte

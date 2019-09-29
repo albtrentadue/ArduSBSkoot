@@ -6,10 +6,9 @@
  */
 
 #include "mcc_generated_files/mcc.h"
-#include "mcc_generated_files/drivers/i2c_slave.h"
-#include "SBSkootS2I2C.h"
+#include "SBSkootSerRep.h"
 
-#define CICLI_HEART 100 //Numero di cicli main-loop (2.5msec) per toggle del led
+#define CICLI_HEART 2500 //Numero di cicli main-loop per toggle del led
 uint16_t cnt_loop = CICLI_HEART;   //contatore del main loop
 
 void heartbeat(void);
@@ -37,37 +36,16 @@ void main(void)
     // Disable the Peripheral Interrupts
     //INTERRUPT_PeripheralInterruptDisable();
     
-    //Inizializzare lo slave I2C qui
-    i2c_slave_open();
-    i2c_slave_setWriteIntHandler(trasferisci_byte_dati);    
-    i2c_set_tx_data_len(6);
-    
     //Inizializza l'applicazione
     inizializza_app();
     
-    //INVESTIGAZIONE
-    IO_LED_Toggle();
-    _delay(500000);
-    IO_LED_Toggle();
-    _delay(500000);
-    IO_LED_Toggle();
-    _delay(500000);
-    IO_LED_Toggle();
-    _delay(500000);
-    IO_LED_Toggle();
-    _delay(500000);
-    IO_LED_Toggle();
-    //INVESTIGAZIONE
-    
     while (1)
     {
-        //Controlla l'arrivo di una nuova trama seriale dal sensore
-        //La lettura di un frame seriale impiega 2,5msec
-        check_frame_seriale();          
-        //Copia i dati nel buffer per l'I2C
-        leggi_dati();
-        //Triggera l'eventuale operazione I2C di Arduino
-        trigger_richiesta_dati();
+        //Legge il primo carattere disponibile sulla seriale
+        leggi_seriale();          
+
+        //inizia il processo di invio di un byte
+        trasmetti_byte();
                             
         heartbeat();        
     }

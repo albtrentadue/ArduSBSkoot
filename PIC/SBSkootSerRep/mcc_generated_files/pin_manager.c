@@ -1,26 +1,26 @@
 /**
-  Generated Interrupt Manager Source File
+  Generated Pin Manager File
 
-  @Company:
+  Company:
     Microchip Technology Inc.
 
-  @File Name:
-    interrupt_manager.c
+  File Name:
+    pin_manager.c
 
-  @Summary:
-    This is the Interrupt Manager file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
+  Summary:
+    This is the Pin Manager file generated using PIC10 / PIC12 / PIC16 / PIC18 MCUs
 
-  @Description:
-    This header file provides implementations for global interrupt handling.
-    For individual peripheral handlers please see the peripheral driver for
-    all modules selected in the GUI.
+  Description:
+    This header file provides implementations for pin APIs for all pins selected in the GUI.
     Generation Information :
         Product Revision  :  PIC10 / PIC12 / PIC16 / PIC18 MCUs - 1.77
         Device            :  PIC16F18326
-        Driver Version    :  2.03
+        Driver Version    :  2.11
     The generated drivers are tested against the following:
-        Compiler          :  XC8 2.05 and above or later
-        MPLAB 	          :  MPLAB X 5.20
+        Compiler          :  XC8 2.05 and above
+        MPLAB             :  MPLAB X 5.20
+
+    Copyright (c) 2013 - 2015 released Microchip Technology Inc.  All rights reserved.
 */
 
 /*
@@ -46,39 +46,71 @@
     SOFTWARE.
 */
 
-#include "interrupt_manager.h"
-#include "mcc.h"
+#include "pin_manager.h"
 
-void __interrupt() INTERRUPT_InterruptManager (void)
+
+
+
+
+void PIN_MANAGER_Initialize(void)
 {
-    // interrupt handler
-    if(INTCONbits.PEIE == 1)
-    { 
-        if(PIE1bits.SSP1IE == 1 && PIR1bits.SSP1IF == 1)
-        {
-            i2c1_driver_i2cISR();
-        }
-        else if(PIE1bits.RCIE == 1 && PIR1bits.RCIF == 1)
-        {
-            EUSART_RxDefaultInterruptHandler();
-        }
-        /*
-         * Non previsto
-        else if(PIE1bits.BCL1IE == 1 && PIR1bits.BCL1IF == 1)
-        {
-            i2c1_driver_busCollisionISR();
-        } 
-         */         
-        else
-        {
-            //Unhandled Interrupt
-        }
-    }      
-    else
-    {
-        //Unhandled Interrupt
-    }
+    /**
+    LATx registers
+    */
+    LATA = 0x00;
+    LATC = 0x12;
+
+    /**
+    TRISx registers
+    */
+    TRISA = 0x37;
+    TRISC = 0x21;
+
+    /**
+    ANSELx registers
+    */
+    ANSELC = 0x03;
+    ANSELA = 0x37;
+
+    /**
+    WPUx registers
+    */
+    WPUA = 0x00;
+    WPUC = 0x00;
+
+    /**
+    ODx registers
+    */
+    ODCONA = 0x00;
+    ODCONC = 0x04;
+
+    /**
+    SLRCONx registers
+    */
+    SLRCONA = 0x37;
+    SLRCONC = 0xFF;
+
+    /**
+    INLVLx registers
+    */
+    INLVLA = 0x3F;
+    INLVLC = 0xFF;
+
+
+
+
+
+   
+    
+	
+    RXPPS = 0x15;   //RC5->EUSART:RX;    
+    RC4PPS = 0x14;   //RC4->EUSART:TX;    
 }
+  
+void PIN_MANAGER_IOC(void)
+{   
+}
+
 /**
  End of File
 */

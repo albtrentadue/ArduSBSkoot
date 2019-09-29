@@ -63,7 +63,9 @@ void i2c_slave_DefRdInterruptHandler(void);
 
 // Write Event Interrupt Handlers
 void i2c_slave_WrCallBack(void);
+void i2c_slave_LastNACKCallBack(void);
 void i2c_slave_setWriteIntHandler(interruptHandler handler);
+void i2c_slave_setLastNACKIntHandler(interruptHandler handler);
 void i2c_slave_DefWrInterruptHandler(void);
 
 
@@ -81,6 +83,7 @@ void i2c_slave_setWCOLIntHandler(interruptHandler handler);
 void i2c_slave_WCOLCallBack(void);
 void (*i2c_slave_RdInterruptHandler)(void);
 void (*i2c_slave_WrInterruptHandler)(void);
+void (*i2c_slave_LastNACKIntHandler)(void);
 void (*i2c_slave_AddrInterruptHandler)(void);
 void (*i2c_slave_WCOLInterruptHandler)(void);
 

@@ -41,8 +41,6 @@ volatile uint8_t sAddr;
 uint8_t i2c_tx_data_len;
 uint8_t i2c_tx_data_counter;
 
-bool i2c_sync = false;
-
 /**
  Section: Local Functions
  */
@@ -65,7 +63,7 @@ void i2c_slave_open(void) {
     i2c1_driver_setAddr(I2C1_SLAVE_ADDRESS << 1);
     i2c1_driver_setMask(I2C1_SLAVE_MASK);
     i2c1_driver_setBusCollisionISR(i2c_slave_BusCollisionISR);
-    i2c_slave_setWriteIntHandler(i2c_slave_DefWrInterruptHandler);
+    i2c_slave_setWriteIntHandler(i2c_slave_DefWrInterruptHandler);    
     i2c_slave_setReadIntHandler(i2c_slave_DefRdInterruptHandler);
     i2c_slave_setAddrIntHandler(i2c_slave_DefAddrInterruptHandler);
     i2c_slave_setWCOLIntHandler(i2c_slave_BusCollisionISR);
@@ -99,13 +97,14 @@ void i2c_slave_ISR(void) {
         state = I2C_TX;         
     }
     */
-    //All'arrivo dell'indirizzo, si resetta il contatore dei dati
-    //e si passa in TX
+    //Dopo l'arrivo dell'indirizzo, si resetta il 
+    //contatore dei dati e si passa in TX
     if (1 == i2c1_driver_isAddress()) {
         state = I2C_TX;
         i2c_tx_data_counter = 0;
     }
-    else if (1 == i2c1_driver_isNACK()) {
+    //Sul NACK dell'ultimo byte, si torna in ADDRESS
+    else if (1 == i2c1_driver_isNACK()) {        
         state = ADDRESS;
     }
     
@@ -162,7 +161,7 @@ void i2c_slave_ISR(void) {
         //per debug, quando serve
         //IO_LED_Toggle();
     }
-        
+     
     //state = nextState;    
     i2c1_driver_releaseClock();
     
@@ -218,12 +217,7 @@ void i2c_slave_DefRdInterruptHandler(void) {
 
 // Write Event Interrupt Handlers
 void i2c_slave_WrCallBack(void) {
-    // Add your custom callback code here
-    /*
-    if (i2c_slave_WrInterruptHandler) {
-        i2c_slave_WrInterruptHandler();
-    }
-     */     
+    // Add your custom callback code here    
     i2c_slave_WrInterruptHandler();    
 }
 

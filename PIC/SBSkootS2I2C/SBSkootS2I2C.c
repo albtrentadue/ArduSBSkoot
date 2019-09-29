@@ -11,13 +11,13 @@
 #include "SBSkootS2I2C.h"
 
 //Scommentare per test senza hoverboard
-#define NO_HOVERBOARD_SERIAL
+//#define NO_HOVERBOARD_SERIAL
 
 //L'area dove viene memorizzati dati rilevanti un buffer valido
 uint16_t sensor_frame_buffer[10];
 //L'area con i dati rilevanti da inviare via I2C
 //Inizializzato con i dati di power up
-uint8_t mb_data_buffer[6] = {0x0, 0x0, 0xAA, 0x0, 0x3F, 0xFF};
+uint8_t mb_data_buffer[6] = {0x0, 0x0, 0xA0, 0x0, 0x3F, 0xFF};
 
 void inizializza_app(void)
 {
@@ -40,7 +40,8 @@ void check_frame_seriale(void)
         sensor_frame_buffer[i] = w;
     }
 #else
-    _delay(TEMPO_2_5MSEC);
+    uint16_t w;
+    for (w=0; w<TEMPO_2MSEC; w++) { }
 #endif
     //A questo punto il frame è completo
 }
@@ -60,10 +61,11 @@ void leggi_dati(void)
 #endif    
 }
 
-void attendi_richiesta_dati(void)
+void trigger_richiesta_dati(void)
 {
-    //Disabilita gli interrupt RX della seriale
-    PIE1bits.RCIE = 0;
+    RC1STAbits.SPEN = 0;
+    //PIE1bits.RCIE = 0;  
+       
     //Segnala i dati ad Arduino settando il flag sul pin RC3
     IO_DRDY_SetHigh();
     
@@ -72,13 +74,13 @@ void attendi_richiesta_dati(void)
     _delay(TEMPO_1MSEC);
 
     //Resetta il flag di dati pronti per Arduino
-    IO_DRDY_SetLow();  
-    //Riabilita gli interrupt RX della seriale
-    PIE1bits.RCIE = 1;    
+    IO_DRDY_SetLow();
+    
+    EUSART_restart();
 }
 
 void trasferisci_byte_dati(void)
 {            
-    i2c1_driver_TXData(mb_data_buffer[i2c_tx_data_counter]);
+    i2c1_driver_TXData(mb_data_buffer[i2c_tx_data_counter]);    
     //IO_LED_Toggle();        
 }
