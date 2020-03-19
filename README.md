@@ -2,8 +2,9 @@
 
 A hoverboard hacking to build a wooden board self balancing scooter.
 
-Based on the hacking made by Drew Dibble:
-http://drewspewsmuse.blogspot.com/2016/06/how-i-hacked-self-balancing-scooter.html
-https://github.com/addibble/HoverboardController
+This hacking is made by interposing a PIC and an Arduino UNO inside the serial communication between one of the hoverboard's gyro cards and the motherboard.
 
-This hacking is made by interposing an Arduino in between one of the hoverboard's gyro cards and the motherboard to steer the hoverboard using a nunchuk or any other control different from the original 2-pedal control
+The PIC reads the 9-bit serial communication from the gyro card and relays the data to Arduino at higher speed.
+Arduino reads the data from the PIC and adjust it based on the control signal from a nunchuk or any other control different from the original 2-pedal control. Then data is sent to the hoverboard motherboard to control the wheels as originally.
+
+The PIC is needed to allow parallel processing between the serial stream (PIC) and the control algorithm (Arduino).
