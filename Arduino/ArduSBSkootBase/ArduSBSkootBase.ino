@@ -5,220 +5,255 @@
  * of the original 2-pedal mode.
  * 
  * By Alberto Trentadue 2019
- * 
- * Based on the hacking made by Drew Dibble 
- * http://drewspewsmuse.blogspot.com/2016/06/how-i-hacked-self-balancing-scooter.html
- * https://github.com/addibble/HoverboardController
- * 
- * Uses the 9bit software serial developed by Drew Dibble.
+ *
  */
 
-#include <SoftwareSerial9.h>
-#include <NintendoExtensionCtrl.h> //<-- include Wire.h
-
-#define HALT_PROGRAM while(true) {}
-
 #define STATUS_LED 13
+#define DEBUG_PIN  8
+#define DEBUG_PIN2 9
 
-//*** COSTANTI E VARIABILI DELLA COMUNICAZIONE I2C/Nunchuck
-#define PIC_I2C_ADDRESS 8
+//*** COSTANTI E VARIABILI DEL JOYSTICK
 
-Nunchuk nchuk;
-byte nJoyX = 0;
-byte nJoyY = 0;
+#define JOYX_APIN A0
+#define JOYY_APIN A1
+#define JOY_PULS  5
 
-//Pin di segnalazione dati I2C pronti (interrupt)
+//Scommentare questa define per azzerare l'azione del joystick
+#define NULL_CORRECTION
+
+//*** COSTANTI E VARIABILI DELLA LETTURA SERIALE DA PIC
+//Pin di segnalazione dati pronti (interrupt)
 #define DATA_READY_FLAG_PIN 3
-//Abilitazione dell'operazione Master Read I2C
-bool sensor_data_ready = false;
-
-//*** COSTANTI E VARIABILI DELLA COMUNICAZIONE SERIALE
-#define SERIALTX_MB 4 //Pin software serial TX
-#define SERIALRX_MB 2 //Non usato (ma necessario)
-
-// interfaccia verso la scheda madre dell'hoverboard
-SoftwareSerial9 mb_sport(SERIALRX_MB, SERIALTX_MB);
-//Baud rate della motherboard misurato: 1 bit = 19.3usec
-#define MB_BAUD_RATE 51814 
-
-//Trame seriali predefinite
-#define MB_FRAME_START_FLAG   0x100
-uint8_t SEQ_INIT[9] =       { 0,  0, 0, 0, 170,   0,  0,  63, 255 };
-uint8_t seq_run[9] =        { 0,  0, 0, 0,  85,  88, 88,  63, 255 };
-//Appoggio del valore di pendenza originale del sensore
-uint16_t slope_original = 0;
+//Pin di lettura seriale
+#define SER_DATA_PIN 7
 
 //Costanti del formato della trama
-#define MB_FRAME_SLOPE_LOW 0
-#define MB_FRAME_SLOPE_HIGH 1
-#define MB_FRAME_SLOPE_LOW2 2
-#define MB_FRAME_SLOPE_HIGH2 3
-#define MB_FRAME_ENABLE 4
-#define MB_FRAME_STATUS 5
-#define MB_FRAME_STATUS2 6
-#define MB_FRAME_MEAS_LOW 7
-#define MB_FRAME_MEAS_HIGH 8
+#define MB_FRAME_START_FLAG 0
+#define MB_FRAME_SLOPE_LOW 1
+#define MB_FRAME_SLOPE_HIGH 2
+#define MB_FRAME_SLOPE_LOW2 3
+#define MB_FRAME_SLOPE_HIGH2 4
+#define MB_FRAME_ENABLE 5
+#define MB_FRAME_STATUS 6
+#define MB_FRAME_STATUS2 7
+#define MB_FRAME_MEAS_LOW 8
+#define MB_FRAME_MEAS_HIGH 9
 
-#define MB_INIT_SEQ_DURATION 1000 //millisecondi di invio della sequenza di init
+//Indice di ricezione del frame
+byte frame_index = MB_FRAME_START_FLAG;
+
+//Flag indicatore della necessità di riallinearsi con i frame
+bool need_sync = true;
+//8 bit meno significativi letti serialmente da D7
+uint8_t ser_byte = 0;
+//il bit 8 più significativo
+uint8_t b8val;
+//Soglia minima dell'attesa del prossimo DATA_READY per attivare la ri-sincronizzazione:
+//Stima:
+//20%*((Durata 10bit@51814)-Trasf_PIC) * FOSC / (# cicli per while di attesa DATA READY)
+//((193-38)/5)*16/8 = 62
+#define MINIMUM_DR_WAIT 62
+//Contatore di attesa del prossimo byte
+uint16_t DR_wait_cnt = 0;
+
+//*** COSTANTI E VARIABILI DELLA COMUNICAZIONE SERIALE
+//Baud rate della motherboard misurato: 1 bit = 19.3usec
+#define MB_BAUD_RATE 51814
+ 
+//Trame seriali predefinite
+#define FRAME_START_FLAG   0x100
+#define FRAME_LENGTH 9
+uint8_t SEQ_INIT[FRAME_LENGTH] = { 0, 0, 0, 0, 170, 0, 0, 63, 255 };
+
+//8 bit meno significativi trasmessi alla seriale MB
+uint8_t byte_to_send;
+
+#define MB_INIT_SEQ_DURATION 1000   //millisecondi di invio della sequenza di init
 #define PRE_REPEAT 300   //numero di sequenza della fase di preavvio
 
-//*** COSTANTI E VARIABILI DELL'ESTIMATORE DI VELOCITA'
-//Rivelatori di velocità dalla durata impulso di una fase del sensore di hall
-#define MISVEL_SX 5
-#define MISVEL_DX 6
-//Tracciaori della fase del sensore di Hall
-byte stato_riv_vel_dx = LOW;
-byte stato_riv_vel_sx = LOW;
-//Contatori di stima del periodo di rotazione
-int cnt_periodo_dx = 0;
-int cnt_periodo_sx = 0;
-//Numero massimo di conteggi oltre il quale la ruota si considera quasi ferma
-#define MAX_PERIODO_RIV 120
-//Velocità angolari stimate delle ruote
-int vel_dx = 0;
-int vel_sx = 0;
-int vel_media = 0;
-//Valore minimo della vel_media che considera il mezzo fermo
-//TODO: da regolare
-#define VEL_FERMO 2
+//*** COSTANTI E VARIABILI PER LA GESTIONE DELLA PENDENZA
+//pendenza letta dal PIC
+uint8_t slope_current_l = 0;
+uint8_t slope_current_h = 0;
+//pendenza da inviare alla MB
+uint8_t slope_corr_l = 0;
+uint8_t slope_corr_h = 0;
 
-//*** COSTANTI E VARIABILI DEL MONITORAGGIO BATTERIA
-#define VALIM_ANALOG A0
-// TODO: Calibrare rispetto al valore massimo della batteria
-#define BATT_OK 1000
-#define BATT_MIN 800
-int livello_batt = 0;
+//PER INVESTIGAZIONE
+//uint16_t DEBUG_RECV_DATA[10];
+//uint8_t debug_recv_idx =0; 
+volatile byte debug_ledtoggle = 0;
+#define HEART_COUNT 100
+int cnt_led = HEART_COUNT;
+#define TOGGLE_DEBUG_PIN PINB = 0x1
+#define TOGGLE_BUILTIN_LED PINB = 0x20
 
 //------ FUNZIONI -------
 
 void setup() {
-  pinMode(LED_BUILTIN, OUTPUT);
 
-  //Inizializza la seriale di debug.
-  Serial.begin(230400); 
+  pinMode(LED_BUILTIN, OUTPUT); 
+  pinMode(SER_DATA_PIN, INPUT);
+  pinMode(JOY_PULS, INPUT_PULLUP);
+  pinMode(DEBUG_PIN, OUTPUT);
+  pinMode(DEBUG_PIN2, OUTPUT); 
 
-  //Configura l'interrupt su D3
-  attachInterrupt(digitalPinToInterrupt(DATA_READY_FLAG_PIN), set_data_ready, RISING);
-
-  //Avvio della seriale verso le schede dell'hoverboard  
-  mb_sport.begin(MB_BAUD_RATE);  
-
-  digitalWrite(LED_BUILTIN, HIGH);
+  //Riferimento analogico su AREF = 3.3V
+  analogReference(EXTERNAL); //Attenzione: non modificare.
+  
+  //Inizializzazione della seriale HW verso le schede dell'hoverboard
+  //9N1-9bit, No parity, 1 Stop Bit
+  NS9_init(MB_BAUD_RATE);    
+  
+  digitalWrite(LED_BUILTIN, LOW);
   //Invio sequenza di inizializzazione alla motherboard
-  sequenza_iniziale_mb();
-
-  //Inizializzazione Nunchuk
-  nchuk.begin();
-  nchuk.i2c().setClock(400000); 
-
-  while (!nchuk.connect()) {
-    Serial.println("Nunchuk non rilevato.");
-    delay(10);
-  }
-
-  //Inizializzazione dei tracciatori della fase dei sensori di Hall
-  //stato_riv_vel_dx = digitalRead(MISVEL_DX);
-  //stato_riv_vel_sx = digitalRead(MISVEL_SX);
+  //sequenza_iniziale_mb();
   
 }
 
 /**
  * Invia le trame della sequenza inziale per un tempo
- * di circa 300ms
+ * di circa 300ms.
+ * NON USATA IN QUESTA VERSIONE
  */
 void sequenza_iniziale_mb(void) 
 {
-  long tm = millis();  
-  //for (int i=0; i<INIT_REPEAT; i++)
+  long tm = millis();    
   while (millis() - tm < MB_INIT_SEQ_DURATION) { //Alcuni secondi per avviare la marcia normale
     invia_sequenza(SEQ_INIT);
     delayMicroseconds(20);
-  }
-  /*
-  digitalWrite(LED_BUILTIN, LOW);
-  //Sequenze di pre-avvio
-  for (int i=0; i<PRE_REPEAT; i++) {
-    invia_sequenza(seq_run);
-    delayMicroseconds(20);
-  }
-  */   
+  }  
 }
 
-/**
- * ISR sul fronte di salita di D3.
- * Aggiorna a TRUE il flag di data ready
- */
-void set_data_ready(void) {
-  sensor_data_ready = true;
-}
-
+#define TCAMPMSB 82
+//51 o 46 ?  
+#define TCAMPBIT 48
+//Loop principale
 void loop() {
-  //Legge i dati della scheda sensore attraverso l'I2C del PIC
-  if (sensor_data_ready) read_i2c_sensor();
-  //Legge gli assi X, Y del nunchuk e corregge la pendenza
-  read_i2c_nunchuk();
-  //invia i dati alla motherboard via seriale
-  send_data_mb();  
-}
 
-/**
- * Legge dalla I2C i dati del PIC e precarica
- * la trama da trasmettere in seriale
- */
-void read_i2c_sensor(void) {
+dr_wait_poll:
 
-  //requestFrom legge in sequenza i 6 bytes di un frame dati.
-  Wire.requestFrom(PIC_I2C_ADDRESS, 6, true);
+  DR_wait_cnt = 0;
+  //Polling su DATA READY alto con misura dell'attesa
+  while (~PIND & 0x8) DR_wait_cnt++;  
+
+  noInterrupts();
   
-  if (Wire.available()) { 
-    slope_original = Wire.read(); //Pendenze    
-    slope_original += (Wire.read() << 8);
-    seq_run[MB_FRAME_ENABLE] = Wire.read(); //Abilitazione presenza
-    seq_run[MB_FRAME_STATUS] = Wire.read();
-    seq_run[MB_FRAME_MEAS_LOW] = Wire.read(); //Misura
-    seq_run[MB_FRAME_MEAS_HIGH] = Wire.read();
+  //DATA READY è 1 -> leggo i 9 bit
+  ser_byte = 0;  
+  //lettura di bit MSB first  
+  __builtin_avr_delay_cycles(TCAMPMSB); 
+  TOGGLE_DEBUG_PIN;  
+  b8val = (PIND & 0x80);
+  __builtin_avr_delay_cycles(TCAMPBIT+3); 
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);    
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);  
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);  
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);  
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT);    
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;    
+  ser_byte <<=1; 
+  __builtin_avr_delay_cycles(TCAMPBIT-4);    
+  TOGGLE_DEBUG_PIN;  
+  if (PIND & 0x80) ser_byte |= 0x1; else ser_byte |= 0;
+
+  interrupts();
+
+  //Se è un FRAME_START_FLAG si deve decidere come procedere
+  if (b8val && (ser_byte == 0x00)) { //equivale a 0x100    
+    frame_index = MB_FRAME_START_FLAG;        
+    if (need_sync) 
+      //Fine della sincronizzazione
+      need_sync = false;          
+    else
+      //Se il margine tra TX ed RX è sotto la soglia,
+      //si attiva la risincronizzazione 
+      if (DR_wait_cnt < MINIMUM_DR_WAIT) need_sync = true;               
   }
-  
-  //resetta a flase il flag di data ready per il prossimo INT
-  sensor_data_ready = false;
-  //PINB=0x20; 
+
+  //Se qui need_sync è true, si aspetta il prossimo frame
+  //senza trasmettere nulla, per svuotare lo shift register della USART
+  if (need_sync) goto dr_wait_poll;
+       
+  //Utilizzo del byte ricevuto
+  switch (frame_index) {
+    case MB_FRAME_SLOPE_LOW:
+      slope_current_l = ser_byte;      
+      byte_to_send = slope_corr_l;
+      break;
+    case MB_FRAME_SLOPE_HIGH:
+      slope_current_h = ser_byte;      
+      byte_to_send = slope_corr_h;
+      break;
+    case MB_FRAME_SLOPE_LOW2:            
+      byte_to_send = slope_corr_l;
+      break;
+    case MB_FRAME_SLOPE_HIGH2:            
+      byte_to_send = slope_corr_h;
+      //Sul quarto byte di pendenza, si applica la correzione del joystick
+      correct_with_joystick();
+      break;
+    default:
+      byte_to_send = ser_byte;
+  }
+   
+  //Invio seriale a 9 bit
+  NS9_write9_b8(byte_to_send, b8val);    
+  frame_index++;
+
+  //Heartbeat
+  if ((--cnt_led) == 0) {
+    cnt_led = HEART_COUNT;
+    //digitalWrite(LED_BUILTIN, (++debug_ledtoggle) & 0x1);
+    TOGGLE_BUILTIN_LED;
+  }  
 }
 
 /**
- * Legge dalla I2C i dati del nunchuk
+ * Legge il valore analogico di un joystick resistivo
  * e corregge direttamente i dati di pendenza
  */
-void read_i2c_nunchuk(void) {
+void correct_with_joystick() {
 
-  boolean success = nchuk.update();  // Legge i dati del nunchuk
-  if (success) {
-    int16_t px = (int16_t)slope_original + (nchuk.joyX() >> 1) - 64; //joy shiftato di 1 = per 1/2
-    seq_run[MB_FRAME_SLOPE_LOW] = (uint8_t) (px & 0xFF);
-    seq_run[MB_FRAME_SLOPE_HIGH] = (uint8_t) (px >> 8);        
-  }
+#ifndef NULL_CORRECTION
+  int nJoyX = analogRead(JOYX_APIN);
+#else
+  int nJoyX = 512;
+  __builtin_avr_delay_cycles(200);
+#endif
+     
+  int16_t slope_current = (slope_current_h <<8) + slope_current_l;
+  int16_t px = slope_current + (nJoyX >> 3) - 64; //joy shiftato di 3 = per 1/8  
+  slope_corr_l = (uint8_t) (px & 0xFF);
+  slope_corr_h =(uint8_t) (px >> 8);        
 }
 
 /**
- * Invia i dati seriali alla MB
+ * Invia una sequenza di 10 word alla seriale della Motherboard.
+ * La prima word è costante 0x100, le rimanenti FRAME_LENGTH sono i bytes
+ * dell'array passato come argomento.
  */
-void send_data_mb(void) {
-  //Copia i dati ridondanti
-  seq_run[MB_FRAME_SLOPE_LOW2] = seq_run[MB_FRAME_SLOPE_LOW];  
-  seq_run[MB_FRAME_SLOPE_HIGH2] = seq_run[MB_FRAME_SLOPE_HIGH];
-  seq_run[MB_FRAME_STATUS2] = seq_run[MB_FRAME_STATUS];
-  //Invia a seriale MB
-  invia_sequenza(seq_run);
-}
-
-
-/**
- * Invia una sequenza di 10 interi alla seriale della Motherboard
- */
-void invia_sequenza(uint8_t seq[])
-{
-  //TEMPORANEO!
-  //mb_sport.write9(MB_FRAME_START_FLAG);
-  //for (byte i=0; i<9; i++) mb_sport.write9((uint16_t)seq[i]);
-  for (byte i=0; i<2; i++) { Serial.print(seq[i]);Serial.print(" "); }
-  Serial.println();
+void invia_sequenza(uint8_t s[]) {
+  NS9_write9_1b8(0); //Invia 0x100
+  for (byte i=0; i<FRAME_LENGTH; i++) NS9_write9_0b8(s[i]);    
 }
